@@ -21,7 +21,7 @@ router.post(
 router.get("/", candidateController.getAllCandidates);
 router.get("/:id", candidateController.getCandidateById);
 router.post("/:id/connect", candidateController.sendConnectionRequest);
-router.put(
+router.patch(
   "/:id",
   upload.fields([
     { name: "profilePhoto", maxCount: 1 },

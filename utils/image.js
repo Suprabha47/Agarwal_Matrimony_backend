@@ -12,7 +12,7 @@ function handleProfilePhoto(req, candidateData, existingCandidate = null) {
   } else if (req.files?.image_path && req.files.image_path[0]) {
     candidateData.image_path = req.files.image_path[0].filename;
   } else if (existingCandidate?.image_path) {
-    // Keep existing filename if no new upload
+    // Keep existing filename if no new upload\
     candidateData.image_path = existingCandidate.image_path;
   } else {
     // Default photo if none exists
