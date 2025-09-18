@@ -1,18 +1,20 @@
-const emailText = (candidate) =>
+const emailText = (candidate, senderName, senderEmail, message) =>
   `Hello ${candidate.name},\n\n` +
-  `You have a new connection request on ${siteName}.\n\n` +
+  `You have a new connection request on ${
+    process.env.SITE_NAME || "Agarwal Samaj Matrimony"
+  }.\n\n` +
   `Sender Details:\n` +
   `Name: ${senderName}\n` +
   `Email: ${senderEmail}\n` +
   `${message ? `\nMessage:\n${message}\n\n` : ""}` +
   `You can reply directly to this email to contact the sender.\n\n` +
-  `Regards,\n${process.env.SITE_NAME}`;
+  `Regards,\n${process.env.SITE_NAME || "Agarwal Samaj Matrimony"}`;
 
-const mailHtml = (candidate) => `
+const mailHtml = (candidate, senderName, senderEmail, message) => `
       <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #111827;">
         <h2 style="margin: 0 0 12px 0;">New connection request</h2>
         <p>You have received a new connection request on <strong>${
-          process.env.SITE_NAME
+          process.env.SITE_NAME || "Agarwal Samaj Matrimony"
         }</strong>.</p>
         <div style="background:#F3F4F6; padding:12px 16px; border-radius:8px;">
           <p style="margin:4px 0;"><strong>Candidate:</strong> ${
@@ -30,7 +32,7 @@ const mailHtml = (candidate) => `
         </div>
         <p style="margin-top:16px;">You can reply directly to this email to contact the sender.</p>
         <p style="margin-top:16px; color:#6B7280;">— ${
-          process.env.SITE_NAME
+          process.env.SITE_NAME || "Agarwal Samaj Matrimony"
         }</p>
       </div>
     `;
