@@ -6,9 +6,9 @@ const Membership = sequelize.define(
   "Membership",
   {
     membershipNumber: {
-      type: DataTypes.STRING,
-      allowNull: false,
-      unique: true,
+      type: DataTypes.INTEGER,
+      primaryKey: true,
+      autoIncrement: true,
     },
     applicantName: {
       type: DataTypes.STRING,
