@@ -1,15 +1,17 @@
 const Membership = require("../models/membershipModel");
 
-// CREATE
 exports.createMembership = async (req, res) => {
   try {
-    const body = req.body;
-    console.log();
+    const body = { ...req.body };
 
-    // 🔍 Check if member already exists (by email OR phone OR husbandIdCardNo)
+    console.log("req::: ", req.body);
+
+    // 🚫 Ensure membershipNumber never sneaks in
+    delete body.membershipNumber;
+
+    // 🔍 Check if member already exists (by email + dob + applicantName + telephone)
     const existingMember = await Membership.findOne({
       where: {
-        // you can adjust this depending on your model fields
         applicantName: body.applicantName,
         applicantDob: body.applicantDob,
         faxEmail: body.faxEmail,
@@ -29,7 +31,7 @@ exports.createMembership = async (req, res) => {
     const husbandPhoto = req.files?.husbandPhoto?.[0]?.filename || null;
     const wifePhoto = req.files?.wifePhoto?.[0]?.filename || null;
 
-    // Create new membership
+    // ✅ Create new membership without membershipNumber
     const membership = await Membership.create({
       ...body,
       husbandIdCard,
@@ -40,6 +42,7 @@ exports.createMembership = async (req, res) => {
 
     res.status(201).json({ message: "Membership created!", membership });
   } catch (error) {
+    console.error("Validation details:", error.errors || error.message);
     res.status(500).json({
       message: "Error creating membership",
       error: error.message,
