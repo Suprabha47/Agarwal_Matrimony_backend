@@ -13,6 +13,8 @@ const homePageSliderRoutes = require("./routes/homePageSliderRoutes");
 const galleryRoutes = require("./routes/galleryRoutes");
 const blogRoutes = require("./routes/blogRoutes");
 const membershipRoutes = require("./routes/membershipRoute");
+const communityServiceRoutes = require("./routes/communityServiceRoutes");
+const attributeValueRoutes = require("./routes/attributeValueRoutes");
 
 const app = express();
 
@@ -20,23 +22,24 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Create uploads directory if it doesn't exist
 const uploadsDir = path.join(__dirname, "uploads");
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
-// Serve static files from uploads directory
 app.use("/uploads", express.static("uploads"));
 
-// API Routes
-app.use("/api/auth", adminRoutes);
-app.use("/api/candidates", candidateRoute);
-app.use("/api/classifieds", classifiedRoutes);
-app.use("/api/sliders", homePageSliderRoutes);
-app.use("/api/blogs", blogRoutes);
-app.use("/api/membership", membershipRoutes);
-app.use("/api", galleryRoutes);
+const baseUrl = "api";
+
+app.use(`/${baseUrl}/auth`, adminRoutes);
+app.use(`/${baseUrl}/candidates`, candidateRoute);
+app.use(`/${baseUrl}/classifieds`, classifiedRoutes);
+app.use(`/${baseUrl}/sliders`, homePageSliderRoutes);
+app.use(`/${baseUrl}/blogs`, blogRoutes);
+app.use(`/${baseUrl}/membership`, membershipRoutes);
+app.use(`/${baseUrl}/community-services`, communityServiceRoutes);
+app.use(`/${baseUrl}/attributes`, attributeValueRoutes);
+app.use(`/${baseUrl}`, galleryRoutes);
 
 // Health check endpoint
 app.get("/", (req, res) => {

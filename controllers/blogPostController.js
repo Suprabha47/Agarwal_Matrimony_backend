@@ -1,9 +1,9 @@
-// controllers/blogPostController.js
 const BlogPost = require("../models/blogPostModel");
 const Category = require("../models/blogCategoryModel.js");
+const fs = require("fs");
+const path = require("path");
 
 module.exports = {
-  // Get all blog posts (with category included)
   async getAllPosts(req, res) {
     try {
       const posts = await BlogPost.findAll({ include: Category });
@@ -13,7 +13,6 @@ module.exports = {
     }
   },
 
-  // Get single blog post by ID
   async getPostById(req, res) {
     try {
       const post = await BlogPost.findByPk(req.params.id, {
@@ -27,7 +26,6 @@ module.exports = {
     }
   },
 
-  // Create a new blog post
   async createPost(req, res) {
     console.log("Incoming Body:", req.body);
     try {
@@ -40,7 +38,6 @@ module.exports = {
         thumbnail_url: req.file ? req.file.filename : null,
       };
 
-      // Validate required fields
       if (!postData.title || !postData.author_name) {
         return res
           .status(400)
@@ -61,7 +58,6 @@ module.exports = {
           .json({ error: "Post with this author and title already exists" });
       }
 
-      // Save new post
       const newPost = await BlogPost.create(postData);
 
       res.status(201).json({
@@ -76,7 +72,7 @@ module.exports = {
       res.status(500).json({ error: "Failed to create post" });
     }
   },
-  // ✅ PATCH: Partially update a blog post
+
   async updatePost(req, res) {
     try {
       const post = await BlogPost.findByPk(req.params.id);
@@ -84,7 +80,6 @@ module.exports = {
         return res.status(404).json({ message: "Post not found" });
       }
 
-      // Build updated data dynamically
       const updatedData = {
         title: req.body.title || post.title,
         author_name: req.body.author_name || post.author_name,
@@ -109,15 +104,30 @@ module.exports = {
     }
   },
 
-  // Delete a blog post
   async deletePost(req, res) {
     try {
       const post = await BlogPost.findByPk(req.params.id);
       if (!post) return res.status(404).json({ message: "Post not found" });
 
+      if (post.thumbnail_url) {
+        const thumbnailPath = path.join(
+          __dirname,
+          "..",
+          "uploads",
+          post.thumbnail_url
+        );
+        if (fs.existsSync(thumbnailPath)) {
+          fs.unlinkSync(thumbnailPath);
+        }
+      }
+
       await post.destroy();
-      res.status(200).json({ message: "Post deleted successfully" });
+
+      res
+        .status(200)
+        .json({ message: "Post and thumbnail deleted successfully" });
     } catch (error) {
+      console.error("Error deleting post:", error);
       res.status(500).json({ message: "Error deleting post", error });
     }
   },

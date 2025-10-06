@@ -1,9 +1,10 @@
 const HomePageSlider = require("../models/homePageSliderModel");
 const path = require("path");
-const {
-  buildSliderImageUrl,
-  handleSliderImage,
-} = require("../utils/sliderHelpers");
+const fs = require("fs");
+// const {
+//   buildSliderImageUrl,
+//   handleSliderImage,
+// } = require("../utils/sliderHelpers");
 
 exports.createSlider = async (req, res) => {
   try {
@@ -31,7 +32,6 @@ exports.createSlider = async (req, res) => {
   }
 };
 
-// Get all sliders
 exports.getSliders = async (req, res) => {
   try {
     const sliders = await HomePageSlider.findAll({
@@ -48,7 +48,6 @@ exports.getSliders = async (req, res) => {
   }
 };
 
-// Get single slider by ID
 exports.getSliderById = async (req, res) => {
   try {
     const slider = await HomePageSlider.findByPk(req.params.id);
@@ -62,13 +61,24 @@ exports.getSliderById = async (req, res) => {
   }
 };
 
-// Update slider
 exports.updateSlider = async (req, res) => {
   try {
     const slider = await HomePageSlider.findByPk(req.params.id);
     if (!slider) return res.status(404).json({ error: "Slider not found" });
 
-    slider.image_path = req.file ? req.file.filename : slider.image_path;
+    if (req.file && slider.image_path) {
+      const oldImagePath = path.join(
+        __dirname,
+        "..",
+        "uploads",
+        slider.image_path
+      );
+      if (fs.existsSync(oldImagePath)) {
+        fs.unlinkSync(oldImagePath);
+      }
+      slider.image_path = req.file.filename;
+    }
+
     slider.alt_text = req.body.alt_text || slider.alt_text;
 
     await slider.save();
@@ -86,15 +96,28 @@ exports.updateSlider = async (req, res) => {
   }
 };
 
-// Delete slider
 exports.deleteSlider = async (req, res) => {
   try {
     const slider = await HomePageSlider.findByPk(req.params.id);
     if (!slider) return res.status(404).json({ error: "Slider not found" });
 
+    if (slider.image_path) {
+      const imagePath = path.join(
+        __dirname,
+        "..",
+        "uploads",
+        slider.image_path
+      );
+      if (fs.existsSync(imagePath)) {
+        fs.unlinkSync(imagePath);
+      }
+    }
+
     await slider.destroy();
-    res.json({ message: "Slider deleted successfully" });
+
+    res.json({ message: "Slider and image deleted successfully" });
   } catch (error) {
+    console.error("Error deleting slider:", error);
     res.status(500).json({ error: "Failed to delete slider" });
   }
 };

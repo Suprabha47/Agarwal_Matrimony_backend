@@ -1,22 +1,23 @@
+const fs = require("fs");
+const path = require("path");
 const Candidate = require("../models/candidateModel");
-const { Op } = require("sequelize"); // <-- Added: Sequelize operators for flexible queries
-const nodemailer = require("nodemailer"); // <-- Added: Email sending
-const candidateInfoConvert = require("../utils/candidateInfoConvert"); // <-- Added: Utility to normalize candidate data
-const { emailText, mailHtml } = require("../utils/email"); // <-- Added: Email templates
+const { Op } = require("sequelize"); // Sequelize operators for flexible queries
+const nodemailer = require("nodemailer");
+const candidateInfoConvert = require("../utils/candidateInfoConvert");
+const { emailText, mailHtml } = require("../utils/email");
 const { buildImageUrl, handleProfilePhoto } = require("../utils/image");
 
 exports.createCandidate = async (req, res) => {
   try {
-    let candidateData = candidateInfoConvert(req); // <-- New: Normalizes input data
+    let candidateData = candidateInfoConvert(req);
 
-    // Check if candidate already exists (by email/contact_no OR name+dob+phone from old code)
     const existingCandidate = await Candidate.findOne({
       where: {
         [Op.or]: [
           { email: candidateData.email },
           { contact_no: candidateData.contact_no },
           {
-            name: candidateData.name, // <-- Added: From old code
+            name: candidateData.name,
             dob: candidateData.dob,
             phone: candidateData.phone,
           },
@@ -25,7 +26,6 @@ exports.createCandidate = async (req, res) => {
     });
 
     if (existingCandidate) {
-      // Update existing instead of error (new behavior)
       handleProfilePhoto(req, candidateData, existingCandidate);
 
       await Candidate.update(candidateData, {
@@ -43,7 +43,6 @@ exports.createCandidate = async (req, res) => {
       });
     }
 
-    // Create new candidate
     handleProfilePhoto(req, candidateData);
     const candidate = await Candidate.create(candidateData);
 
@@ -58,7 +57,6 @@ exports.createCandidate = async (req, res) => {
   } catch (error) {
     console.error("Error creating candidate:", error);
 
-    // <-- New: Specific Sequelize error handling
     if (error.name === "SequelizeValidationError") {
       return res.status(400).json(
         error.errors.map((err) => ({
@@ -87,7 +85,7 @@ exports.getAllCandidates = async (req, res) => {
     console.log("candidates: ", candidates);
     const response = candidates.map((c) => ({
       ...c.toJSON(),
-      image_path: buildImageUrl(req, c.image_path), // <-- Added: absolute URL for images
+      image_path: buildImageUrl(req, c.image_path),
     }));
     res.status(200).json(response);
   } catch (error) {
@@ -113,7 +111,6 @@ exports.getCandidateById = async (req, res) => {
   }
 };
 
-// PATCH /api/candidates/:id
 exports.updateCandidate = async (req, res) => {
   try {
     const candidateId = req.params.id;
@@ -125,7 +122,6 @@ exports.updateCandidate = async (req, res) => {
 
     let data = req.body;
 
-    // ✅ Pass existingCandidate so old image is preserved
     data = handleProfilePhoto(req, data, existingCandidate);
 
     await Candidate.update(data, { where: { id: candidateId } });
@@ -155,6 +151,38 @@ exports.deleteCandidate = async (req, res) => {
     res
       .status(500)
       .json({ error: "Failed to delete candidate", details: error.message });
+  }
+};
+
+exports.deleteCandidate = async (req, res) => {
+  try {
+    const candidate = await Candidate.findByPk(req.params.id);
+    if (!candidate)
+      return res.status(404).json({ error: "Candidate not found" });
+
+    if (candidate.image_path) {
+      const imagePath = path.join(
+        __dirname,
+        "..",
+        "uploads",
+        path.basename(candidate.image_path)
+      );
+      if (fs.existsSync(imagePath)) {
+        fs.unlinkSync(imagePath);
+      }
+    }
+
+    await candidate.destroy();
+
+    res
+      .status(200)
+      .json({ message: "Candidate and profile image deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting candidate:", error);
+    res.status(500).json({
+      error: "Failed to delete candidate",
+      details: error.message,
+    });
   }
 };
 

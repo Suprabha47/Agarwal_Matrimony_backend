@@ -3,9 +3,6 @@ const GalleryImages = require("../models/galleryImagesModel");
 const fs = require("fs");
 const path = require("path");
 
-// -------------------- Albums --------------------
-
-// Get all albums with images
 const getAlbums = async (req, res) => {
   try {
     const albums = await GalleryAlbums.findAll({
@@ -19,7 +16,6 @@ const getAlbums = async (req, res) => {
   }
 };
 
-// Get single album by ID with images
 const getAlbumById = async (req, res) => {
   try {
     const album = await GalleryAlbums.findByPk(req.params.id, {
@@ -35,7 +31,6 @@ const getAlbumById = async (req, res) => {
 
 const createAlbum = async (req, res) => {
   try {
-    // ✅ If a file was uploaded, multer puts its info in req.file
     const coverImageUrl = req.file ? `/uploads/${req.file.filename}` : null;
 
     const { album_title, album_description, event_date } = req.body;
@@ -61,8 +56,6 @@ const createAlbum = async (req, res) => {
   }
 };
 
-// Update album
-
 const updateAlbum = async (req, res) => {
   try {
     const albumId = req.params.id;
@@ -72,19 +65,14 @@ const updateAlbum = async (req, res) => {
       return res.status(404).json({ message: "Album not found" });
     }
 
-    // Safely extract fields from req.body
     const { album_title, album_description, event_date } = req.body;
 
-    // Prepare updated fields
     const updatedFields = {
       album_title: album_title ?? album.album_title,
       album_description: album_description ?? album.album_description,
       event_date: event_date ?? album.event_date,
     };
-
-    // If a new file is uploaded, replace old cover image
     if (req.file) {
-      // Optional: delete old image from disk
       if (album.cover_image_url) {
         const oldPath = path.join(
           __dirname,
@@ -107,23 +95,46 @@ const updateAlbum = async (req, res) => {
   }
 };
 
-// Delete album (and associated images due to CASCADE)
 const deleteAlbum = async (req, res) => {
   try {
-    const album = await GalleryAlbums.findByPk(req.params.id);
+    const album = await GalleryAlbums.findByPk(req.params.id, {
+      include: [{ model: GalleryImages }],
+    });
+
     if (!album) return res.status(404).json({ message: "Album not found" });
 
+    if (album.cover_image_url) {
+      const coverPath = path.join(
+        __dirname,
+        "..",
+        "uploads",
+        path.basename(album.cover_image_url)
+      );
+      if (fs.existsSync(coverPath)) fs.unlinkSync(coverPath);
+    }
+
+    if (album.GalleryImages && album.GalleryImages.length > 0) {
+      album.GalleryImages.forEach((image) => {
+        if (image.image_url) {
+          const imagePath = path.resolve(image.image_url);
+          if (fs.existsSync(imagePath)) fs.unlinkSync(imagePath);
+        }
+      });
+
+      await GalleryImages.destroy({ where: { album_id: album.album_id } });
+    }
+
     await album.destroy();
-    res.json({ message: "Album deleted successfully" });
+
+    res.json({
+      message: "Album and all associated images deleted successfully",
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Failed to delete album" });
   }
 };
 
-// -------------------- Images --------------------
-
-// Add images to album
 const addImagesToAlbum = async (req, res) => {
   try {
     const album = await GalleryAlbums.findByPk(req.params.id);
@@ -147,7 +158,6 @@ const addImagesToAlbum = async (req, res) => {
   }
 };
 
-// Delete single image
 const deleteImage = async (req, res) => {
   try {
     const image = await GalleryImages.findByPk(req.params.id);

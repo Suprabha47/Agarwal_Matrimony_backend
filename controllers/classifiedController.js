@@ -1,21 +1,19 @@
 const Classified = require("../models/classifiedModel");
 const { Op } = require("sequelize");
+const fs = require("fs");
+const path = require("path");
 
-// Helper to serialize photos array to string
 const serializePhotos = (files) => {
   if (!files) return null;
-  // Assume photos uploaded under 'photos' field
   const filenames = files.photos ? files.photos.map((f) => f.filename) : [];
   return filenames.join(",");
 };
 
-// Helper to deserialize photos string to array
 const deserializePhotos = (photosString) => {
   if (!photosString) return [];
   return photosString.split(",");
 };
 
-// Create a new classified listing
 exports.registerListing = async (req, res) => {
   try {
     const data = req.body;
@@ -38,7 +36,6 @@ exports.registerListing = async (req, res) => {
   }
 };
 
-// Get listing approval status by user email or phone
 exports.getStatus = async (req, res) => {
   try {
     const { contact } = req.params; // either phone or email for simplicity
@@ -53,7 +50,6 @@ exports.getStatus = async (req, res) => {
   }
 };
 
-// Search approved listings with optional filters
 exports.searchListings = async (req, res) => {
   try {
     const { business_category, firm_name } = req.query;
@@ -68,7 +64,6 @@ exports.searchListings = async (req, res) => {
   }
 };
 
-// Get listing details by id
 exports.getListingById = async (req, res) => {
   try {
     const listing = await Classified.findByPk(req.params.id);
@@ -79,7 +74,6 @@ exports.getListingById = async (req, res) => {
   }
 };
 
-// Admin: Approve a listing
 exports.approveListing = async (req, res) => {
   try {
     const { id } = req.params;
@@ -118,7 +112,6 @@ exports.approveListing = async (req, res) => {
   }
 };
 
-// Admin: Disapprove a listing
 exports.disapproveListing = async (req, res) => {
   try {
     const { id } = req.params;
@@ -159,7 +152,6 @@ exports.disapproveListing = async (req, res) => {
   }
 };
 
-// Admin: List pending listings
 exports.getPendingListings = async (req, res) => {
   try {
     const listings = await Classified.findAll({ where: { status: "pending" } });
@@ -169,13 +161,11 @@ exports.getPendingListings = async (req, res) => {
   }
 };
 
-// Update a listing by ID
 exports.updateListing = async (req, res) => {
   try {
     const { id } = req.params;
     let data = req.body;
 
-    // Parse deletedPhotos if it's sent as JSON string
     let deletedPhotos = [];
     if (data.deletedPhotos) {
       try {
@@ -185,35 +175,28 @@ exports.updateListing = async (req, res) => {
       }
     }
 
-    // Check if the listing exists first
     const listing = await Classified.findByPk(id);
     if (!listing) {
       return res.status(404).json({ error: "Listing not found" });
     }
 
-    // Get existing photos (array)
     let existingPhotos = listing.photos ? listing.photos.split(",") : [];
 
-    // Step 1: Remove deleted photos from existingPhotos array
     if (deletedPhotos.length > 0) {
       existingPhotos = existingPhotos.filter(
         (photo) => !deletedPhotos.includes(photo)
       );
     }
 
-    // Step 2: Add newly uploaded photos (if any)
     if (req.files && req.files.photos) {
       const newPhotos = req.files.photos.map((f) => f.filename);
       existingPhotos = [...existingPhotos, ...newPhotos];
     }
 
-    // Step 3: Update `photos` field with merged photos
     data.photos = existingPhotos.join(",");
 
-    // Step 4: Update the listing
     await Classified.update(data, { where: { id } });
 
-    // Optional: Delete removed images from the filesystem
     if (deletedPhotos.length > 0) {
       const fs = require("fs");
       const path = require("path");
@@ -226,7 +209,6 @@ exports.updateListing = async (req, res) => {
       });
     }
 
-    // Fetch the latest listing
     const updatedListing = await Classified.findByPk(id);
 
     res.json({
@@ -239,22 +221,32 @@ exports.updateListing = async (req, res) => {
   }
 };
 
-// Delete a listing by ID
 exports.deleteListing = async (req, res) => {
   try {
     const { id } = req.params;
-    console.log("type::id:: ", typeof id);
-    const deleted = await Classified.destroy({ where: { id } });
-    if (!deleted) return res.status(404).json({ error: "Listing not found" });
 
-    res.json({ message: "Listing deleted successfully" });
+    const listing = await Classified.findByPk(id);
+    if (!listing) return res.status(404).json({ error: "Listing not found" });
+
+    if (listing.photos) {
+      const photos = listing.photos.split(",");
+      photos.forEach((photo) => {
+        const filePath = path.join(__dirname, "../uploads", photo);
+        fs.unlink(filePath, (err) => {
+          if (err) console.warn(`Could not delete file: ${photo}`, err);
+        });
+      });
+    }
+
+    await Classified.destroy({ where: { id } });
+
+    res.json({ message: "Listing and associated photos deleted successfully" });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Failed to delete listing" });
   }
 };
 
-// Fetch all listings (optionally with filters)
 exports.fetchAllListings = async (req, res) => {
   try {
     const listings = await Classified.findAll();
