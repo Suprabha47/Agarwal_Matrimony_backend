@@ -40,7 +40,7 @@ const AdminUser = sequelize.define(
   },
   {
     tableName: "admin_users",
-    timestamps: false, // because you already have created_at (no updatedAt)
+    timestamps: false,
   }
 );
 

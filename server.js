@@ -14,7 +14,7 @@ const galleryRoutes = require("./routes/galleryRoutes");
 const blogRoutes = require("./routes/blogRoutes");
 const membershipRoutes = require("./routes/membershipRoute");
 const communityServiceRoutes = require("./routes/communityServiceRoutes");
-const attributeValueRoutes = require("./routes/attributeValueRoutes");
+const attributeValueRoutes = require("./routes/attributeRoutes");
 
 const app = express();
 
@@ -41,7 +41,6 @@ app.use(`/${baseUrl}/community-services`, communityServiceRoutes);
 app.use(`/${baseUrl}/attributes`, attributeValueRoutes);
 app.use(`/${baseUrl}`, galleryRoutes);
 
-// Health check endpoint
 app.get("/", (req, res) => {
   res.json({
     message: "Server is running!",
@@ -56,7 +55,6 @@ async function init() {
   try {
     await connectDB();
 
-    // Sync database with force: false to preserve existing data
     await sequelize.sync({ force: false });
     console.log("Database synced successfully");
 

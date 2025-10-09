@@ -1,13 +1,20 @@
 const express = require("express");
 const router = express.Router();
 
-const { signUp, signIn } = require("../controllers/adminController");
+const authenticateAdmin = require("../middlewares/authenticateAdmin");
+
+const {
+  signUp,
+  signIn,
+  deleteUser,
+  getAllUsers,
+  createAdminUser,
+} = require("../controllers/adminController");
 
 router.post("/sign-up", signUp);
 router.post("/sign-in", signIn);
-router.get("/admins", (req, res) => {
-  console.log("Admin listing");
-  res.status(200).send("listingg");
-});
+router.post("/create-admin", authenticateAdmin, createAdminUser);
+router.get("/admins", getAllUsers);
+router.delete("/:id", authenticateAdmin, deleteUser);
 
 module.exports = router;

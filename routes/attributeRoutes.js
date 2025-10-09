@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const attributeValueController = require("../controllers/attributeValueController");
+const attributeValueController = require("../controllers/attributeController");
 const authenticateAdmin = require("../middlewares/authenticateAdmin");
 
 router.get("/", attributeValueController.getAllAttributeValues);
